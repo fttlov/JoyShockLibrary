@@ -19,3 +19,5 @@ Files modified: JoyShock.cpp, JoyShockLibrary.cpp
 Functions modified/added: get_transformed_imu_state(), JslGetSimpleState(), JslGetIMUState(), JslGetGyro*(), JslGetAccel*()
 Description: Overloaded the get_transformed_imu_state() method to support parameter-free invocation, allowing thread-safe, lock-guarded access to internal IMU structures. Protected main-thread reading in JslGetSimpleState() with modifying_lock and updated all single-axis gyro and accelerometer getters to retrieve state via the thread-safe copy generator. This eliminates any remaining data races between JSL's background polling loop and the host application's rendering frame rates.
 
+## Builings
+How to see in building section: https://github.com/fttlov/JCAdvance
