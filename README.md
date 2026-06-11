@@ -5,7 +5,7 @@ JoyShockLibrary Modification Summary (JCAdvance Fork)
 1. Gyro Axis Overwrite Bug Fix
 Files modified: JoyShock.cpp
 Function modified: get_and_flush_cumulative_gyro()
-Description: Resolved a critical typo where gyroY and gyroZ assignments were mistakenly written to gyroX when num_cumulative_gyro_samples == 0 [2]. This bug previously corrupted the X-axis and left the Y/Z axes unassigned, leading to severe camera stuttering and axis drift on frames where no new IMU samples arrived.
+Description: Resolved a critical typo where gyroY and gyroZ assignments were mistakenly written to gyroX when num_cumulative_gyro_samples == 0. This bug previously corrupted the X-axis and left the Y/Z axes unassigned, leading to severe camera stuttering and axis drift on frames where no new IMU samples arrived.
 2. Double-Transformation Gyro Space Bug Fix
 Files modified: JoyShockLibrary.cpp
 Function modified: pollIndividualLoop()
