@@ -1,6 +1,5 @@
 It's a fork of JoyShockLibrary 3.0.2. from r57zone https://github.com/r57zone/JoyShockLibrary. 
-My fork was created for JCADvance, but it may also work with DSadvance.
-
+My fork was created for JCADvance, but it may also work with DSadvance. Look for changes in the code using the special characters //@
 JoyShockLibrary Modification Summary (JCAdvance Fork)
 1. Gyro Axis Overwrite Bug Fix
 Files modified: JoyShock.cpp
