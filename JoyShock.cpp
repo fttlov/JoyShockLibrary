@@ -368,10 +368,28 @@ public:
 
 	void get_and_flush_cumulative_gyro(float& gyroX, float& gyroY, float& gyroZ) {
 		modifying_lock.lock();
+
+		// --- НАЧАЛО ДЕБАГ-БЛОКА С ПРИНУДИТЕЛЬНЫМ ВЫВОДОМ ---
+		static int total_packets = 0;
+		static auto last_print_time = std::chrono::steady_clock::now();
+
+		total_packets += num_cumulative_gyro_samples;
+
+		auto current_time = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_print_time).count();
+
+		if (elapsed >= 1000) { // Прошла 1 секунда (1000 мс)
+			printf("\n >>> REAL HW POLLING RATE: %d Hz <<<\n", total_packets);
+			fflush(stdout); // Принудительно выталкиваем текст из буфера на экран!
+			total_packets = 0;
+			last_print_time = current_time;
+		}
+		// --- КОНЕЦ ДЕБАГ-БЛОКА ---
+
 		if (num_cumulative_gyro_samples == 0) {
 			gyroX = cumulative_gyro_x;
-			gyroX = cumulative_gyro_y;
-			gyroX = cumulative_gyro_z;
+			gyroY = cumulative_gyro_y;
+			gyroZ = cumulative_gyro_z;
 		}
 		else {
 			gyroX = cumulative_gyro_x / num_cumulative_gyro_samples;
@@ -380,8 +398,8 @@ public:
 			num_cumulative_gyro_samples = 0;
 			// so that we don't return zeroes before we receive a new sample, store this for next time:
 			cumulative_gyro_x = gyroX;
-			cumulative_gyro_y = gyroY;
-			cumulative_gyro_z = gyroZ;
+			cumulative_gyro_y = gyroY;	//@301 ОШИБКА: было gyro_x = gyroY
+			cumulative_gyro_z = gyroZ;	//gyro_x = gyroZ
 		}
 		float gravX, gravY, gravZ;
 		motion.GetGravity(gravX, gravY, gravZ);
@@ -397,6 +415,10 @@ public:
 			break;
 		case 2:
 			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
+			gyroZ = 0.f;
+			break;
+		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
 			gyroZ = 0.f;
 			break;
 		}
@@ -428,6 +450,50 @@ public:
 		return motionState;
 	}
 
+	IMU_STATE get_transformed_imu_state()	//@302 Новая перегрузка: Безопасное чтение текущего состояния IMU без передачи аргументов
+	{
+		float gyroX, gyroY, gyroZ, gravX, gravY, gravZ;
+		float accelX, accelY, accelZ;
+
+		modifying_lock.lock();
+		motion.GetGravity(gravX, gravY, gravZ);
+		gyroX = imu_state.gyroX;
+		gyroY = imu_state.gyroY;
+		gyroZ = imu_state.gyroZ;
+		accelX = imu_state.accelX;
+		accelY = imu_state.accelY;
+		accelZ = imu_state.accelZ;
+		modifying_lock.unlock();
+
+		switch (gyroSpace)
+		{
+		default:
+		case 0:
+			break;
+		case 1:
+			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
+			gyroZ = 0.f;
+			break;
+		case 2:
+			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
+			gyroZ = 0.f;
+			break;
+		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
+			gyroZ = 0.f;
+			break;
+		}
+
+		IMU_STATE transformedState = IMU_STATE();
+		transformedState.accelX = accelX;
+		transformedState.accelY = accelY;
+		transformedState.accelZ = accelZ;
+		transformedState.gyroX = gyroX;
+		transformedState.gyroY = gyroY;
+		transformedState.gyroZ = gyroZ;
+		return transformedState;
+	}
+
 	IMU_STATE get_transformed_imu_state(IMU_STATE& imu_state)
 	{
 		float gyroX, gyroY, gyroZ, gravX, gravY, gravZ;
@@ -448,6 +514,10 @@ public:
 			break;
 		case 2:
 			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
+			gyroZ = 0.f;
+			break;
+		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
 			gyroZ = 0.f;
 			break;
 		}

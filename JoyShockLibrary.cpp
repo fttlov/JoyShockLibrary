@@ -166,8 +166,10 @@ void pollIndividualLoop(JoyShock *jc) {
 			// and the callback could be time-consuming (up to the user), so we use a readers-writer-lock.
 			if (handle_input(jc, buf, 64, hasIMU)) { // but the user won't necessarily have a callback at all, so we'll skip the lock altogether in that case
 				// accumulate gyro
-				IMU_STATE imuState = jc->get_transformed_imu_state(jc->imu_state);
-				jc->push_cumulative_gyro(imuState.gyroX, imuState.gyroY, imuState.gyroZ);
+				//IMU_STATE imuState = jc->get_transformed_imu_state(jc->imu_state);
+				IMU_STATE imuState = jc->get_transformed_imu_state();	//@202
+				//jc->push_cumulative_gyro(imuState.gyroX, imuState.gyroY, imuState.gyroZ);	//@201 Исправление двойного преобразования пространства
+				jc->push_cumulative_gyro(jc->imu_state.gyroX, jc->imu_state.gyroY, jc->imu_state.gyroZ);
 				if (_pollCallback != nullptr || _pollTouchCallback != nullptr)
 				{
 					std::shared_lock<std::shared_timed_mutex> lock(_callbackLock);
@@ -574,7 +576,11 @@ JOY_SHOCK_STATE JslGetSimpleState(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->simple_state;
+		//return jc->simple_state;	//@202
+		jc->modifying_lock.lock();
+		JOY_SHOCK_STATE state = jc->simple_state;
+		jc->modifying_lock.unlock();
+		return state;
 	}
 	return {};
 }
@@ -583,7 +589,8 @@ IMU_STATE JslGetIMUState(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->get_transformed_imu_state(jc->imu_state);
+		//return jc->get_transformed_imu_state(jc->imu_state);
+		return jc->get_transformed_imu_state(); // Вызов перегруженного метода без аргументов
 	}
 	return {};
 }
@@ -704,7 +711,8 @@ float JslGetGyroX(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->get_transformed_imu_state(jc->imu_state).gyroX;
+		//return jc->get_transformed_imu_state(jc->imu_state).gyroX;
+		return jc->get_transformed_imu_state().gyroX;	//202
 	}
 	return 0.0f;
 }
@@ -713,7 +721,8 @@ float JslGetGyroY(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->get_transformed_imu_state(jc->imu_state).gyroY;
+		//return jc->get_transformed_imu_state(jc->imu_state).gyroY;
+		return jc->get_transformed_imu_state().gyroY;	//202
 	}
 	return 0.0f;
 }
@@ -722,7 +731,8 @@ float JslGetGyroZ(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->get_transformed_imu_state(jc->imu_state).gyroZ;
+		//return jc->get_transformed_imu_state(jc->imu_state).gyroZ;
+		return jc->get_transformed_imu_state().gyroZ;	//202
 	}
 	return 0.0f;
 }
@@ -743,8 +753,8 @@ void JslSetGyroSpace(int deviceId, int gyroSpace)
 	if (gyroSpace < 0) {
 		gyroSpace = 0;
 	}
-	if (gyroSpace > 2) {
-		gyroSpace = 2;
+	if (gyroSpace > 3) {	//@203 for case 3
+		gyroSpace = 3;
 	}
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
@@ -761,7 +771,8 @@ float JslGetAccelX(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->imu_state.accelX;
+		//return jc->imu_state.accelX;
+		return jc->get_transformed_imu_state().accelX;	//@202
 	}
 	return 0.0f;
 }
@@ -770,7 +781,8 @@ float JslGetAccelY(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->imu_state.accelY;
+		//return jc->imu_state.accelY;
+		return jc->get_transformed_imu_state().accelY;	//@202
 	}
 	return 0.0f;
 }
@@ -779,7 +791,8 @@ float JslGetAccelZ(int deviceId)
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
-		return jc->imu_state.accelZ;
+		//return jc->imu_state.accelZ;
+		return jc->get_transformed_imu_state().accelZ;	//@202
 	}
 	return 0.0f;
 }

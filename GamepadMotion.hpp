@@ -243,7 +243,7 @@ public:
 	void GetPlayerSpaceGyro(float& x, float& y, const float yawRelaxFactor = 1.41f);
 	static void CalculatePlayerSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float yawRelaxFactor = 1.41f);
 	void GetWorldSpaceGyro(float& x, float& y, const float sideReductionThreshold = 0.125f);
-	static void CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f);
+	static void CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f, bool isHybrid = false);	//@401 add bool isHybrid = false for case 3
 
 	// gyro calibration functions
 	void StartContinuousCalibration();
@@ -1180,7 +1180,7 @@ inline void GamepadMotion::GetWorldSpaceGyro(float& x, float& y, const float sid
 	CalculateWorldSpaceGyro(x, y, Gyro.x, Gyro.y, Gyro.z, Motion.Grav.x, Motion.Grav.y, Motion.Grav.z, sideReductionThreshold);
 }
 
-inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold)
+inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold, bool isHybrid)	//@401 add bool isHybrid for case 3
 {
 	// use the gravity direction as the yaw axis, and derive an appropriate pitch axis. Explained in depth at http://gyrowiki.jibbsmart.com/blog:player-space-gyro-and-alternatives-explained#toc6
 	const float worldYaw = -gravX * gyroX - gravY * gyroY - gravZ * gyroZ;
@@ -1208,7 +1208,19 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 		x = 0.f;
 	}
 
-	y = worldYaw;
+	//y = worldYaw; //original
+	//y = worldYaw * (1.0f - gravZ * gravZ); // затухание при приближении к вертикали (ZR в потолок)
+
+	if (isHybrid) {		//@401 новый case 3, переход из World в local в зависимости от угла по вертикали
+		//const float blend = gravZ * gravZ;	// local включается при больших вертикальных углах
+		const float blend = std::abs(gravZ);	// после 45 гр.
+		//const float blend = std::min(1.0f, std::abs(gravZ) * 1.5f);	//local 100% уже при 42 гр.
+		//const float blend = sqrtf(std::abs(gravZ));	//ранний старт local
+		y = (1.0f - blend) * worldYaw + blend * gyroY;
+	}
+	else {
+		y = worldYaw;
+	}
 }
 
 // gyro calibration functions
