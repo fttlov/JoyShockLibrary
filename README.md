@@ -34,9 +34,9 @@ Description: In horizontal grip (R and ZR pointing at the screen) uses case 1, a
 
 6. //@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON
 
-7. OSD
-Code:  //@204, //@205, //@304, //@501, //@602
-Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp
+7. OSD <br>
+Code:  //@204, //@205, //@304, //@501, //@602 <br>
+Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 Description: Modification and bugfixes (//@602) of the library to display information on the OSD
 
 ## Builings
