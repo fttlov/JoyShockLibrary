@@ -1212,8 +1212,8 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 	//y = worldYaw * (1.0f - gravZ * gravZ); // затухание при приближении к вертикали (ZR в потолок)
 
 	if (isHybrid) {		//@401 новый case 3, переход из World в local в зависимости от угла по вертикали
-		//const float blend = gravZ * gravZ;	// local включается при больших вертикальных углах
-		const float blend = std::abs(gravZ);	// после 45 гр.
+		const float blend = gravZ * gravZ;	// local включается при больших вертикальных углах
+		//const float blend = std::abs(gravZ);	// после 45 гр.
 		//const float blend = std::min(1.0f, std::abs(gravZ) * 1.5f);	//local 100% уже при 42 гр.
 		//const float blend = sqrtf(std::abs(gravZ));	//ранний старт local
 		y = (1.0f - blend) * worldYaw + blend * gyroY;
