@@ -39,7 +39,7 @@ Code:  //@204, //@205, //@304, //@501, //@602 <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 Description: Modification and bugfixes (//@602) of the library to display information on the OSD
 
-8. Auto-calibration fix for Joy-con <br>
+8. Auto-calibration fix <br>
 Code: //@402 <br>
 Files modified: GamepadMotion.hpp  <br>
 Description: The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
