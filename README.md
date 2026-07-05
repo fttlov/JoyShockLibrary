@@ -39,5 +39,16 @@ Code:  //@204, //@205, //@304, //@501, //@602 <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 Description: Modification and bugfixes (//@602) of the library to display information on the OSD
 
+8. Auto-calibration fix for Joy-con <br
+Code: //@402 <br
+Files modified: GamepadMotion.hpp  <br>
+Description: The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
+The Solution: Implemented an adaptive threshold relaxation mechanism in GamepadMotion.hpp. If the controller fails the strict stillness check, but the current gyro noise is under a safe physical limit (< 0.5 deg/s, meaning the controller is definitely on a desk, not in hands), the stuck threshold smoothly interpolates (relaxes) towards the current noise level. This ensures auto-calibration never "dies" and dynamically adapts to the current thermal and noise state of the IMU without triggering false calibrations in your hands.
+
+9. Aut-calibration settings to config.ini (for Nintendo only) <br
+Code: //@206, //@502 <br
+Files modified: JoyShockLibrary.cpp, JoyShockLibrary.h <br
+Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime to config.ini [Joy-Con]
+
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
