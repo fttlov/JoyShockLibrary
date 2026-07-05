@@ -343,25 +343,25 @@ public:
         }
 
 		//@305 [TEST]Fine-tuning calibration settings for JOY-CON
-		if (this->controller_type == ControllerType::n_switch) {
+		/*if (this->controller_type == ControllerType::n_switch) {
 
 			// 1. Порог "Неподвижности" (Допустимая дрожь рук)
 			// Оригинал: 2.0f. Чем выше, тем легче ловит ноль в руках, но выше риск ложной калибровки при медленной проводке.
 			this->motion.Settings.MaxStillnessError = 2.0f;
 
 			// Время непрерывного покоя (в секундах), которое требуется выждать до применения новой калибровки (def. 2.0f)
-			this->motion.Settings.MinStillnessCorrectionTime = 2.5f;
+			this->motion.Settings.MinStillnessCorrectionTime = 2.0;
 
 			// 2. Скорость роста Уверенности (Confidence)
 			// Оригинал: 1.0f (нужна 1 секунда). При 2.0f нужно 0.5 секунды. При 4.0f - всего 0.25 сек.
 			this->motion.Settings.StillnessConfidenceRate = 1.0f;
 
 			// Время применения новоого нуля (Def. 3f)
-			this->motion.Settings.StillnessCalibrationEaseInTime = 2.5f;
+			this->motion.Settings.StillnessCalibrationEaseInTime = 3.0f;
 
 			// Скорость расширения порога шума во время движения, чтобы алгоритм быстрее адаптировался к новому фону (def. 0.1f)
 			this->motion.Settings.StillnessErrorClimbRate = 0.1f;
-		}
+		}*/
 	}
 
 	JoyShock(struct hid_device_info* dev, hid_device* inHandle, int uniqueHandle, const std::string& inPath) {
