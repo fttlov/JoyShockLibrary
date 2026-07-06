@@ -882,6 +882,13 @@ namespace GamepadMotionHelpers
 		else
 		{
 			RecalibrateThreshold = std::min(RecalibrateThreshold + stillnessErrorClimbRate * deltaTime, maxStillnessError);
+			//@402 Adaptive Noise Threshold. Если геймпад провалил проверку, но текущий шум всё еще очень мал (меньше 0.5 град/сек), это значит, что геймпад 
+			//скорее всего лежит на столе, но датчик стал шуметь сильнее. Плавно подтягиваем застрявший минимальный порог к новому уровню шума.
+			if (gyroDelta.x < 0.5f && gyroDelta.y < 0.5f && gyroDelta.z < 0.5f) {	// Порог
+				const float relaxRate = 2.0f * deltaTime;	//скорость применения 2f- 200%
+				if (stillnessGyroDelta < 0.f) MinDeltaGyro = MinDeltaGyro.Lerp(gyroDelta, relaxRate);
+				if (stillnessAccelDelta < 0.f) MinDeltaAccel = MinDeltaAccel.Lerp(accelDelta, relaxRate);
+			}
 			MinMaxWindow.Reset(0.f);
 		}
 
