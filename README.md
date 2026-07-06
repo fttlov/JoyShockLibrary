@@ -45,10 +45,10 @@ Files modified: GamepadMotion.hpp  <br>
 Description: The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
 The Solution: Implemented an adaptive threshold relaxation mechanism in GamepadMotion.hpp. If the controller fails the strict stillness check, but the current gyro noise is under a safe physical limit (< 0.5 deg/s, meaning the controller is definitely on a desk, not in hands), the stuck threshold smoothly interpolates (relaxes) towards the current noise level. This ensures auto-calibration never "dies" and dynamically adapts to the current thermal and noise state of the IMU without triggering false calibrations in your hands.
 
-9. Aut-calibration settings to config.ini (for Nintendo only) <br>
+9. Auto-calibration settings to config.ini (for Nintendo only) <br>
 Code: //@206, //@502 <br>
 Files modified: JoyShockLibrary.cpp, JoyShockLibrary.h <br>
-Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime to config.ini [Joy-Con]
+Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime to config.ini [Joy-Con] section
 
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
