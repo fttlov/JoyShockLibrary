@@ -440,10 +440,10 @@ public:
 			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
 			gyroZ = 0.f;
 			break;
-		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+		/*case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
 			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
 			gyroZ = 0.f;
-			break;
+			break;*/
 		}
 	}
 
@@ -501,10 +501,10 @@ public:
 			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
 			gyroZ = 0.f;
 			break;
-		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+		/*case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
 			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
 			gyroZ = 0.f;
-			break;
+			break;*/
 		}
 
 		IMU_STATE transformedState = IMU_STATE();
@@ -539,10 +539,10 @@ public:
 			GamepadMotion::CalculatePlayerSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ);
 			gyroZ = 0.f;
 			break;
-		case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
+		/*case 3: //@303 Наш новый гибридный режим (принудительно передаем true на конце)
 			GamepadMotion::CalculateWorldSpaceGyro(gyroX, gyroY, gyroX, gyroY, gyroZ, gravX, gravY, gravZ, 0.125f, true);
 			gyroZ = 0.f;
-			break;
+			break;*/
 		}
 		IMU_STATE transformedState = IMU_STATE();
 		transformedState.accelX = imu_state.accelX;
