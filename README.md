@@ -44,11 +44,18 @@ Code: //@402 <br>
 Files modified: GamepadMotion.hpp  <br>
 Description: The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
 The Solution: Implemented an adaptive threshold relaxation mechanism in GamepadMotion.hpp. If the controller fails the strict stillness check, but the current gyro noise is under a safe physical limit (< 0.5 deg/s, meaning the controller is definitely on a desk, not in hands), the stuck threshold smoothly interpolates (relaxes) towards the current noise level. This ensures auto-calibration never "dies" and dynamically adapts to the current thermal and noise state of the IMU without triggering false calibrations in your hands.
+Fixes in JCAdvance 3.5: the sluggish 10-15 second delay in gyro auto-calibration recovery. The relaxation rate now correctly uses the accumulated collection time instead of frame delta, allowing near-instant calibration recovery when placing the controller on a desk.
 
 9. Auto-calibration settings to config.ini (for Nintendo only) <br>
 Code: //@206, //@502 <br>
 Files modified: JoyShockLibrary.cpp, JoyShockLibrary.h <br>
 Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime to config.ini [Joy-Con] section
+
+10. Accelerometer Calibration & Axis Mapping <br>
+Code: //@603 <br>
+Files modified: InputHelpers.cpp <br>
+Description: Fixed a critical math bug in how JSL handles accelerometer calibration data from the Nintendo SPI Flash memory. The original code read the zero-offset calibration (sensor_cal[0]) but failed to subtract it from the raw sensor data, only using it to slightly alter the multiplier coefficient. It also contained a typo that applied the X-axis calibration to the physical Y-axis.
+Because of this, hardware-calibrated controllers still suffered from severe cross-talk (diagonal drifting) in "World Space" mode. The fix corrects the math formula to (Raw - Zero_Offset) * Coefficient and properly maps the physical axes. Now, JSL flawlessly respects the hardware accelerometer calibration recorded via the Nintendo Switch console or hardware shortcuts.
 
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
