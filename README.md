@@ -57,5 +57,10 @@ Files modified: InputHelpers.cpp <br>
 Description: Fixed a critical math bug in how JSL handles accelerometer calibration data from the Nintendo SPI Flash memory. The original code read the zero-offset calibration (sensor_cal[0]) but failed to subtract it from the raw sensor data, only using it to slightly alter the multiplier coefficient. It also contained a typo that applied the X-axis calibration to the physical Y-axis.
 Because of this, hardware-calibrated controllers still suffered from severe cross-talk (diagonal drifting) in "World Space" mode. The fix corrects the math formula to (Raw - Zero_Offset) * Coefficient and properly maps the physical axes. Now, JSL flawlessly respects the hardware accelerometer calibration recorded via the Nintendo Switch console or hardware shortcuts.
 
+11. Software accelerometer recalibration (by hotkey)
+Code: //@207
+Files modified: JoyShockLibrary.cpp
+Description: If you cannot perform a hardware calibration of the accelerometer, use software calibration (hotkey) for current session.
+
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
