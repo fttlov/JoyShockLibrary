@@ -30,7 +30,7 @@ Description: Overloaded the get_transformed_imu_state() method to support parame
 5. Experemental case 3 (hybrid) for Joy-cons  <br>
 Code: //@203, //@303, //@401  <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
-Description: In horizontal grip (R and ZR pointing at the screen) uses case 1, as the vertical angle increases, a gradual transition to case 0.
+Description: World Gyro Space, but minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a horizontal grip
 
 6. //@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON
 
