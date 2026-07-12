@@ -30,7 +30,7 @@ Description: Overloaded the get_transformed_imu_state() method to support parame
 5. Experemental case 3 (hybrid) for Joy-cons  <br>
 Code: //@203, //@303, //@401  <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
-Description: World Gyro Space, but minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a horizontal grip
+Description: Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
 
 6. //@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON
 
@@ -49,7 +49,7 @@ Fixes in JCAdvance 3.5: the sluggish 10-15 second delay in gyro auto-calibration
 9. Auto-calibration settings to config.ini (for Nintendo only) <br>
 Code: //@206, //@502 <br>
 Files modified: JoyShockLibrary.cpp, JoyShockLibrary.h <br>
-Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime to config.ini [Joy-Con] section
+Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime, GravityShakinessMin, GravityShakinessMax, GravityStillSpeed, GravityShakySpeed to config.ini [Joycons] section
 
 10. Accelerometer Calibration & Axis Mapping <br>
 Code: //@603 <br>
