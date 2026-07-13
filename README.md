@@ -32,7 +32,7 @@ Code: //@203, //@303, //@401  <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
 Description: Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
 
-6. //@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON
+6. ~~//@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON~~
 
 7. OSD <br>
 Code:  //@204, //@205, //@304, //@501, //@602 <br>
