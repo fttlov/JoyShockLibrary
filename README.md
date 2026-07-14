@@ -31,33 +31,34 @@ Description: Overloaded the get_transformed_imu_state() method to support parame
 Code: //@203, //@303, //@401  <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
 Description: Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
+Added "Planar Space" (Case 3) for gyro gaming. This mode completely filters out the local Z-axis (roll/"screwdriver" effect) interference to gyro mouse/stick X axis iv vertical grip . It calculates pure 2D planar pitch and yaw, utilizing a squared gravity vector compensation to maintain 1:1 horizontal sensitivity even at high controller angles (ZR pointing more to the ceiling). Perfect for non-horizontal Joy-Con grips.
 
-6. ~~//@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON~~
+7. ~~//@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON~~
 
-7. OSD <br>
+8. OSD <br>
 Code:  //@204, //@205, //@304, //@501, //@602 <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 Description: Modification and bugfixes (//@602) of the library to display information on the OSD
 
-8. Auto-calibration fix <br>
+9. Auto-calibration fix <br>
 Code: //@402 <br>
 Files modified: GamepadMotion.hpp  <br>
 Description: The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
 The Solution: Implemented an adaptive threshold relaxation mechanism in GamepadMotion.hpp. If the controller fails the strict stillness check, but the current gyro noise is under a safe physical limit (< 0.5 deg/s, meaning the controller is definitely on a desk, not in hands), the stuck threshold smoothly interpolates (relaxes) towards the current noise level. This ensures auto-calibration never "dies" and dynamically adapts to the current thermal and noise state of the IMU without triggering false calibrations in your hands.
 Fixes in JCAdvance 3.5: the sluggish 10-15 second delay in gyro auto-calibration recovery. The relaxation rate now correctly uses the accumulated collection time instead of frame delta, allowing near-instant calibration recovery when placing the controller on a desk.
 
-9. Auto-calibration settings to config.ini (for Nintendo only) <br>
+10. Auto-calibration settings to config.ini (for Nintendo only) <br>
 Code: //@206, //@502 <br>
 Files modified: JoyShockLibrary.cpp, JoyShockLibrary.h <br>
 Description: added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime, GravityShakinessMin, GravityShakinessMax, GravityStillSpeed, GravityShakySpeed to config.ini [Joycons] section
 
-10. Accelerometer Calibration & Axis Mapping <br>
+11. Accelerometer Calibration & Axis Mapping <br>
 Code: //@603 <br>
 Files modified: InputHelpers.cpp <br>
 Description: Fixed a critical math bug in how JSL handles accelerometer calibration data from the Nintendo SPI Flash memory. The original code read the zero-offset calibration (sensor_cal[0]) but failed to subtract it from the raw sensor data, only using it to slightly alter the multiplier coefficient. It also contained a typo that applied the X-axis calibration to the physical Y-axis. <br>
 Because of this, hardware-calibrated controllers still suffered from severe cross-talk (diagonal drifting) in "World Space" mode. The fix corrects the math formula to (Raw - Zero_Offset) * Coefficient and properly maps the physical axes. Now, JSL flawlessly respects the hardware accelerometer calibration recorded via the Nintendo Switch console or hardware shortcuts.
 
-11. Software accelerometer recalibration (by hotkey) <br>
+12. Software accelerometer recalibration (by hotkey) <br>
 Code: //@207 <br>
 Files modified: JoyShockLibrary.cpp <br>
 Description: If you cannot perform a hardware calibration of the accelerometer, use software calibration (hotkey) for current session.
