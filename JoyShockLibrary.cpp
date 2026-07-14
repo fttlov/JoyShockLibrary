@@ -993,12 +993,25 @@ void JslSetStillnessSettings(int deviceId, float maxError, float minCollectionTi
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr) {
 		jc->modifying_lock.lock();
-		// Защита: применяем кастомные таймеры ТОЛЬКО для контроллеров Nintendo
-		if (jc->controller_type == ControllerType::n_switch) {
+		if (jc->controller_type == ControllerType::n_switch) { 		//for Nintendo only
 			jc->motion.Settings.MaxStillnessError = maxError;
 			jc->motion.Settings.MinStillnessCollectionTime = minCollectionTime;
 			jc->motion.Settings.MinStillnessCorrectionTime = minCorrectionTime;
 			jc->motion.Settings.StillnessCalibrationEaseInTime = easeInTime;
+		}
+		jc->modifying_lock.unlock();
+	}
+}
+void JslSetGravitySettings(int deviceId, float shakinessMin, float shakinessMax, float stillSpeed, float shakySpeed) {	//@206
+	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
+	JoyShock* jc = GetJoyShockFromHandle(deviceId);
+	if (jc != nullptr) {
+		jc->modifying_lock.lock();
+		if (jc->controller_type == ControllerType::n_switch) {		// for Nintendo only
+			jc->motion.Settings.GravityCorrectionShakinessMinThreshold = shakinessMin;
+			jc->motion.Settings.GravityCorrectionShakinessMaxThreshold = shakinessMax;
+			jc->motion.Settings.GravityCorrectionStillSpeed = stillSpeed;
+			jc->motion.Settings.GravityCorrectionShakySpeed = shakySpeed;
 		}
 		jc->modifying_lock.unlock();
 	}

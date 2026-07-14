@@ -244,7 +244,9 @@ public:
 	static void CalculatePlayerSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float yawRelaxFactor = 1.41f);
 	void GetWorldSpaceGyro(float& x, float& y, const float sideReductionThreshold = 0.125f);
 	static void CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f);
-	//static void CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f, bool isHybrid = false);	//@401 add bool isHybrid = false for case 3
+	//static void CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f, bool isHybrid = false);	//@401 OLD (add bool isHybrid = false for case 3)
+	void GetPlanarSpaceGyro(float& x, float& y, const float sideReductionThreshold = 0.125f);	//@401 new case 3. No further interference with the X-axis control when rotating (counter or clockwise) the hand during a horizontal grip
+	static void CalculatePlanarSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold = 0.125f);
 
 	// gyro calibration functions
 	void StartContinuousCalibration();
@@ -1191,7 +1193,7 @@ inline void GamepadMotion::GetWorldSpaceGyro(float& x, float& y, const float sid
 }
 
 inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold)
-//inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold, bool isHybrid)	//@401 add bool isHybrid for case 3
+//inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold, bool isHybrid)	//@401 OLD (add bool isHybrid for case 3)
 {
 	// use the gravity direction as the yaw axis, and derive an appropriate pitch axis. Explained in depth at http://gyrowiki.jibbsmart.com/blog:player-space-gyro-and-alternatives-explained#toc6
 	const float worldYaw = -gravX * gyroX - gravY * gyroY - gravZ * gyroZ;
@@ -1221,9 +1223,8 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 	}
 
 	y = worldYaw; //original
-	//y = worldYaw * (1.0f - gravZ * gravZ); // затухание при приближении к вертикали (ZR в потолок)
 
-	/*if (isHybrid) {		//@401 новый case 3, переход из World в local в зависимости от угла по вертикали
+	/*if (isHybrid) {		//@401 OLD case 3, переход из World в local в зависимости от угла по вертикали
 		const float blend = gravZ * gravZ;	// local включаетс€ при больших вертикальных углах
 		//const float blend = std::abs(gravZ);	// после 45 гр.
 		//const float blend = std::min(1.0f, std::abs(gravZ) * 1.5f);	//local 100% уже при 42 гр.
@@ -1233,6 +1234,50 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 	else {
 		y = worldYaw;
 	}*/
+}
+
+inline void GamepadMotion::GetPlanarSpaceGyro(float& x, float& y, const float sideReductionThreshold)
+{
+	CalculatePlanarSpaceGyro(x, y, Gyro.x, Gyro.y, Gyro.z, Motion.Grav.x, Motion.Grav.y, Motion.Grav.z, sideReductionThreshold);
+}
+
+//@401 NEW Case 3 (Planar Space). ѕолностью исключает вли€ние "отвертки" (gyroZ) и сохран€ет 1:1 чувствительность по горизонтали при высоких углах наклона (Pitch/Roll).
+inline void GamepadMotion::CalculatePlanarSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold)
+{
+	// ¬ычисл€ем длину 2D-вектора гравитации и его квадрат (игнориру€ ось Z)
+	float grav2D_sq = gravX * gravX + gravY * gravY;
+	float grav2D_len = sqrtf(grav2D_sq);
+
+	// «ащита от делени€ на ноль, если контроллер смотрит строго в потолок/пол (gravZ = 1 или -1)
+	if (grav2D_len > 0.01f)
+	{
+		// ¬ычисл€ем синус и косинус угла наклона (Roll) контроллера
+		float cosRoll = -gravY / grav2D_len;
+		float sinRoll = gravX / grav2D_len;
+
+		// 1. ¬ычисл€ем Pitch (ќсь X экрана)
+		// ѕроецируем локальные махи X и Y на плоскость экрана с учетом наклона контроллера.
+		float flatness = std::abs(gravY);
+		float upness = std::abs(gravZ);
+		float sideReduction = sideReductionThreshold <= 0.f ? 1.f : std::clamp((std::max(flatness, upness) - sideReductionThreshold) / sideReductionThreshold, 0.f, 1.f);
+
+		x = (gyroX * cosRoll + gyroY * sinRoll) * sideReduction;
+
+		// 2. ¬ычисл€ем Yaw (ќсь Y экрана)
+		// »звлекаем чистое горизонтальное движение тела (Arm sweep) из осей X и Y.
+		// ƒеление на квадрат вектора гравитации (scale) динамически восстанавливает потерю 
+		// скорости вращени€ при высоких углах наклона, сохран€€ идеальную пропорцию 1:1.
+		// ќграничиваем знаменатель (0.15f), чтобы предотвратить рывки курсора при около-вертикальном хвате.
+		float scale = 1.0f / std::max(grav2D_sq, 0.15f);
+		y = (-gravX * gyroX - gravY * gyroY) * scale;
+	}
+	else
+	{
+		// ≈сли контроллер находитс€ в сингул€рности (идеально вертикально), останавливаем курсор,
+		// так как движение руки вычислить невозможно без компаса.
+		x = 0.0f;
+		y = 0.0f;
+	}
 }
 
 // gyro calibration functions
