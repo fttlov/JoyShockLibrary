@@ -27,7 +27,7 @@ Files modified: JoyShockLibrary.cpp, JoyShock.cpp,  <br>
 Functions modified/added: get_transformed_imu_state(), JslGetSimpleState(), JslGetIMUState(), JslGetGyro*(), JslGetAccel*() <br>
 Description: Overloaded the get_transformed_imu_state() method to support parameter-free invocation, allowing thread-safe, lock-guarded access to internal IMU structures. Protected main-thread reading in JslGetSimpleState() with modifying_lock and updated all single-axis gyro and accelerometer getters to retrieve state via the thread-safe copy generator. This eliminates any remaining data races between JSL's background polling loop and the host application's rendering frame rates.
 
-5. Experemental case 3 (hybrid) for Joy-cons  <br>
+5. New case 3 (Planar Space) for Joy-cons  <br>
 Code: //@203, //@303, //@401  <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
 Description: Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
