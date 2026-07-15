@@ -1241,40 +1241,36 @@ inline void GamepadMotion::GetPlanarSpaceGyro(float& x, float& y, const float si
 	CalculatePlanarSpaceGyro(x, y, Gyro.x, Gyro.y, Gyro.z, Motion.Grav.x, Motion.Grav.y, Motion.Grav.z, sideReductionThreshold);
 }
 
-//@401 NEW Case 3 (Planar Space). ѕолностью исключает вли€ние "отвертки" (gyroZ) и сохран€ет 1:1 чувствительность по горизонтали при высоких углах наклона (Pitch/Roll).
+//@401 NEW Case 3 Planar Space 
+// Mathematically projects gyro movement onto a 2D plane, completely eliminating the local Z-axis (the "screwdriver" or wrist-roll effect). Maintains 1:1 aiming sensitivity at steep controller angles
 inline void GamepadMotion::CalculatePlanarSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold)
 {
-	// ¬ычисл€ем длину 2D-вектора гравитации и его квадрат (игнориру€ ось Z)
-	float grav2D_sq = gravX * gravX + gravY * gravY;
-	float grav2D_len = sqrtf(grav2D_sq);
+	// Calculate the 2D gravity magnitude, completely ignoring the Z-axis
+	float grav2D_len = sqrtf(gravX * gravX + gravY * gravY);
 
-	// «ащита от делени€ на ноль, если контроллер смотрит строго в потолок/пол (gravZ = 1 или -1)
-	if (grav2D_len > 0.01f)
+	// Ensure the controller hasn't crossed the 90-degree vertical threshold (zenith) gravY < 0.0f acts as a hard stop to prevent Gimbal Lock flip and polarity inversion grav2D_len > 0.01f prevents division by zero
+	if (gravY < 0.0f && grav2D_len > 0.01f)
 	{
-		// ¬ычисл€ем синус и косинус угла наклона (Roll) контроллера
+		// 2D Rotation Matrix: Calculate controller roll to dynamically rotate the X and Y gyro inputs so they perfectly align with the screen's horizontal/vertical axes.
 		float cosRoll = -gravY / grav2D_len;
 		float sinRoll = gravX / grav2D_len;
 
-		// 1. ¬ычисл€ем Pitch (ќсь X экрана)
-		// ѕроецируем локальные махи X и Y на плоскость экрана с учетом наклона контроллера.
+		// Dampen output if the controller is lying flat on a table to prevent erratic cursor jumps.
 		float flatness = std::abs(gravY);
 		float upness = std::abs(gravZ);
 		float sideReduction = sideReductionThreshold <= 0.f ? 1.f : std::clamp((std::max(flatness, upness) - sideReductionThreshold) / sideReductionThreshold, 0.f, 1.f);
 
+		// Calculate Pitch (Vertical screen axis).
 		x = (gyroX * cosRoll + gyroY * sinRoll) * sideReduction;
 
-		// 2. ¬ычисл€ем Yaw (ќсь Y экрана)
-		// »звлекаем чистое горизонтальное движение тела (Arm sweep) из осей X и Y.
-		// ƒеление на квадрат вектора гравитации (scale) динамически восстанавливает потерю 
-		// скорости вращени€ при высоких углах наклона, сохран€€ идеальную пропорцию 1:1.
-		// ќграничиваем знаменатель (0.15f), чтобы предотвратить рывки курсора при около-вертикальном хвате.
-		float scale = 1.0f / std::max(grav2D_sq, 0.15f);
-		y = (-gravX * gyroX - gravY * gyroY) * scale;
+		// Calculate Yaw (Horizontal screen axis) scaleY preserves genuine 1:1 physical sweep sensitivity as the controller tilts up.
+		//We cap the minimum divisor at 0.15f (~81 degrees) to prevent extreme sensitivity spikes near the zenith.
+		float scaleY = grav2D_len / std::max(grav2D_len, 0.15f);
+		y = (gyroY * cosRoll - gyroX * sinRoll) * scaleY;
 	}
 	else
 	{
-		// ≈сли контроллер находитс€ в сингул€рности (идеально вертикально), останавливаем курсор,
-		// так как движение руки вычислить невозможно без компаса.
+		// Halt all cursor movement if the controller is pointed straight at the ceiling  or tilted backward, forcing the user to return to a valid aiming posture.
 		x = 0.0f;
 		y = 0.0f;
 	}
