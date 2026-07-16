@@ -1050,7 +1050,17 @@ JSL_AUTO_CALIBRATION JslGetAutoCalibrationStatus(int deviceId) {
 
 	return {};
 }
-
+void JslGetAccelerometerTelemetry(int deviceId, float& shakiness, float& minDeltaAccel) {	//@208
+	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
+	JoyShock* jc = GetJoyShockFromHandle(deviceId);
+	if (jc != nullptr) {
+		shakiness = jc->motion.GetShakiness();
+		minDeltaAccel = jc->motion.GetMinDeltaAccel();
+		return;
+	}
+	shakiness = 0.0f;
+	minDeltaAccel = 0.0f;
+}
 // this function will get called for each input event from each controller
 void JslSetCallback(void(*callback)(int, JOY_SHOCK_STATE, JOY_SHOCK_STATE, IMU_STATE, IMU_STATE, float)) {
 	// exclusive lock

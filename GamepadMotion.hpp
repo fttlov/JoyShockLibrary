@@ -113,6 +113,7 @@ namespace GamepadMotionHelpers
 		
 		float Confidence = 0.f;
 		bool IsSteady() { return bIsSteady; }
+		float GetMinDeltaAccel() { return MinDeltaAccel.x; }	//@403
 
 	private:
 		Vec MinDeltaGyro = Vec(1.f);
@@ -257,6 +258,8 @@ public:
 	float GetAutoCalibrationConfidence();
 	void SetAutoCalibrationConfidence(float newConfidence);
 	bool GetAutoCalibrationIsSteady();
+	float GetShakiness() { return Motion.Shakiness; }	//@403
+	float GetMinDeltaAccel() { return AutoCalibration.GetMinDeltaAccel(); }
 
 	GamepadMotionHelpers::CalibrationMode GetCalibrationMode();
 	void SetCalibrationMode(GamepadMotionHelpers::CalibrationMode calibrationMode);
