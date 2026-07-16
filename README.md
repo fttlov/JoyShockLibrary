@@ -36,7 +36,7 @@ Added "Planar Space" (Case 3) for gyro gaming. This mode completely filters out 
 7. ~~//@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON~~
 
 8. OSD <br>
-Code:  //@204, //@205, //@304, //@501, //@602 <br>
+Code:  //@204, //@205, //@208, //@304, //@501, //@602 <br>
 Files modified: JoyShockLibrary.cpp, JoyShock.cpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 Description: Modification and bugfixes (//@602) of the library to display information on the OSD
 
