@@ -32,6 +32,8 @@ Fork was created for JCADvance, but it may also work with DSadvance. Look for ch
 **Files modified:** JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
 **Description:** Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
 Added "Planar Space" (Case 3) for gyro gaming. This mode completely filters out the local Z-axis (roll/"screwdriver" effect) interference to gyro mouse/stick X axis iv vertical grip . It calculates pure 2D planar pitch and yaw, utilizing a squared gravity vector compensation to maintain 1:1 horizontal sensitivity even at high controller angles (ZR pointing more to the ceiling). Perfect for non-horizontal Joy-Con grips.
+**Update in 3.8":** The limits on wrist rotation (screwdriver) angles greater than -90 90 degrees have been relaxed. Vertical (horizon) grip limits still there
+
 
 6. ~~//@305 JoyShock.cpp - Fine-tuning calibration settings for JOY-CON~~
 
