@@ -89,5 +89,10 @@ Because of this, hardware-calibrated controllers still suffered from severe cros
   - **Zenith Polarity Guard (`effectiveGravY`)**: Preserves natural pitch direction when crossing the zenith over the shoulder (`gravY > 0`).
   - **3D Side Reduction (`sideness`)**: Added `sideness = std::abs(gravX)` to `sideReduction`, preventing artificial input muting when holding the controller on its side.
 
+### Connection Handshake & IMU Initialization Loop Fix
+Code: @604
+**Files modified:** `InputHelpers.cpp`  
+**Description:** Adding zeroSampleCount++ to @604. Resolved a race condition during Bluetooth controller startup where temporary zero-payloads in early sub-packets prematurely flagged `hasIMU = false`. The IMU presence check now evaluates all 3 sub-samples per report, requiring a full zero-payload across the entire packet before declaring the sensor inactive. This completely eliminates infinite `enable_IMU` command spam and reconnection loops during controller connection.
+
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
