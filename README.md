@@ -57,10 +57,10 @@ Fixes in JCAdvance 3.5: the sluggish 10-15 second delay in gyro auto-calibration
 **Description:** added MaxStillnessError, MinStillnessCollectionTime, MinStillnessCorrectionTime, StillnessCalibrationEaseInTime, GravityShakinessMin, GravityShakinessMax, GravityStillSpeed, GravityShakySpeed to config.ini [Joycons] section
 
 10. #### Accelerometer Calibration & Axis Mapping <br>
-~~ **Code:** //@603 <br>
+**Code:** //@604 <br>
 **Files modified:** `InputHelpers.cpp` <br>
 **Description:** Fixed a critical math bug in how JSL handles accelerometer calibration data from the Nintendo SPI Flash memory. The original code read the zero-offset calibration (sensor_cal[0]) but failed to subtract it from the raw sensor data, only using it to slightly alter the multiplier coefficient. It also contained a typo that applied the X-axis calibration to the physical Y-axis. <br>
-Because of this, hardware-calibrated controllers still suffered from severe cross-talk (diagonal drifting) in "World Space" mode. The fix corrects the math formula to (Raw - Zero_Offset) * Coefficient and properly maps the physical axes. Now, JSL flawlessly respects the hardware accelerometer calibration recorded via the Nintendo Switch console or hardware shortcuts. ~~ 
+Because of this, hardware-calibrated controllers still suffered from severe cross-talk (diagonal drifting) in "World Space" mode. The fix corrects the math formula to (Raw - Zero_Offset) * Coefficient and properly maps the physical axes. Now, JSL flawlessly respects the hardware accelerometer calibration recorded via the Nintendo Switch console or hardware shortcuts. 
 
 11. #### Software accelerometer recalibration (by hotkey) <br>
 **Code:** //@207 <br>
