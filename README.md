@@ -77,21 +77,21 @@ Because of this, hardware-calibrated controllers still suffered from severe cros
 **Files modified:** `InputHelpers.cpp` <br>
 **Description:** Nintendo Switch controllers sample their IMU at 200Hz (every 5ms) and pack 3 discrete readings into a single Bluetooth HID report sent every 15ms (~66.6Hz). Completely overhauled the input pipeline by removing the legacy code's 3-sample averaging filter, which previously acted as an unintended low-pass filter—blurring sharp flicks and adding artificial input lag. The new pipeline unrolls and processes all 3 micro-samples sequentially with a divided `deltaTime`, tripling motion tracking resolution, maximizing flick-shot responsiveness, and unlocking true 200Hz+ sensor fidelity without increasing Bluetooth bandwidth.
 
-### 14. Modified World Space (//@404)
-- **Description**: Standard JSL World Space pitch (vertical / X-axis) calculation suffers from critical mathematical flaws and cross-axis corruption:
-  1. **Pitch Cross-Talk & Arc Distortion**: Original JSL pitch includes a `-gravZ * gravX * gyroZ` term. At non-zero pitch angles, pure wrist rolls (screwdriver gesture) caused the cursor to sag in a curved downward arc, and diagonal swipes warped into unpredictable S-curves, leading to vertical height overshoot.
-  2. **Roll = 90° Freeze**: Holding the controller on its side causes the projected `pitchAxis` vector to collapse to `(0,0,0)`, completely freezing vertical cursor movement. Furthermore, original `sideReduction` ignores X-axis gravity (`gravX`), evaluating to `0.0` and creating a secondary input lock.
-  3. **Roll > 90° Inversion**: Rolling the controller past 90° inverts pitch projection polarity, moving the cursor down when pitching the hand up.
-  4. **Zenith Micro-Freeze (Pitch = 90°)**: Pointing straight at the ceiling causes 2D gravity projections to collapse, leading to sub-frame dead zones when crossing the zenith.
-- **Fix**: Replaced JSL's pitch projection with a robust 3D-aware Virtual Un-Roll and Zenith Cross-Fade algorithm:
-  - **Isolated Pitch Tracking (`unrolledGyroX`)**: Excludes `gyroZ` (wrist roll) from the vertical axis entirely. Restores 100% pitch responsiveness at Roll = 90°, prevents pitch inversion at Roll > 90°, ensures wrist rolls at Pitch > 0 move the cursor in a perfectly flat horizontal line (no downward arc sag), and guarantees clean, linear diagonal swipes.
-  - **Zenith Cross-Fade (`zenithBlend`)**: Smoothly cross-fades the un-rolled gyro into raw `gyroX` near Zenith based on `abs(gravZ)`, completely eliminating micro-freezes and 0/0 division dead zones when pointing straight up or down.
-  - **Zenith Polarity Guard (`effectiveGravY`)**: Preserves natural pitch direction when crossing the zenith over the shoulder (`gravY > 0`).
+### 14. Modified World Space (//@404) 
+- **Description**: Standard JSL World Space pitch (vertical / X-axis) calculation suffers from critical mathematical flaws and cross-axis corruption:<br>
+  1. **Pitch Cross-Talk & Arc Distortion**: Original JSL pitch includes a `-gravZ * gravX * gyroZ` term. At non-zero pitch angles, pure wrist rolls (screwdriver gesture) caused the cursor to sag in a curved downward arc, and diagonal swipes warped into unpredictable S-curves, leading to vertical height overshoot. <br>
+  2. **Roll = 90° Freeze**: Holding the controller on its side causes the projected `pitchAxis` vector to collapse to `(0,0,0)`, completely freezing vertical cursor movement. Furthermore, original `sideReduction` ignores X-axis gravity (`gravX`), evaluating to `0.0` and creating a secondary input lock. <br>
+  3. **Roll > 90° Inversion**: Rolling the controller past 90° inverts pitch projection polarity, moving the cursor down when pitching the hand up. <br>
+  4. **Zenith Micro-Freeze (Pitch = 90°)**: Pointing straight at the ceiling causes 2D gravity projections to collapse, leading to sub-frame dead zones when crossing the zenith. <br>
+- **Fix**: Replaced JSL's pitch projection with a robust 3D-aware Virtual Un-Roll and Zenith Cross-Fade algorithm: <br>
+  - **Isolated Pitch Tracking (`unrolledGyroX`)**: Excludes `gyroZ` (wrist roll) from the vertical axis entirely. Restores 100% pitch responsiveness at Roll = 90°, prevents pitch inversion at Roll > 90°, ensures wrist rolls at Pitch > 0 move the cursor in a perfectly flat horizontal line (no downward arc sag), and guarantees clean, linear diagonal swipes. <br>
+  - **Zenith Cross-Fade (`zenithBlend`)**: Smoothly cross-fades the un-rolled gyro into raw `gyroX` near Zenith based on `abs(gravZ)`, completely eliminating micro-freezes and 0/0 division dead zones when pointing straight up or down. <br>
+  - **Zenith Polarity Guard (`effectiveGravY`)**: Preserves natural pitch direction when crossing the zenith over the shoulder (`gravY > 0`). <br>
   - **3D Side Reduction (`sideness`)**: Added `sideness = std::abs(gravX)` to `sideReduction`, preventing artificial input muting when holding the controller on its side.
 
 ### Connection Handshake & IMU Initialization Loop Fix
-Code: @604
-**Files modified:** `InputHelpers.cpp`  
+Code: @604 <br>
+**Files modified:** `InputHelpers.cpp`  <br>
 **Description:** Adding zeroSampleCount++ to @604. Resolved a race condition during Bluetooth controller startup where temporary zero-payloads in early sub-packets prematurely flagged `hasIMU = false`. The IMU presence check now evaluates all 3 sub-samples per report, requiring a full zero-payload across the entire packet before declaring the sensor inactive. This completely eliminates infinite `enable_IMU` command spam and reconnection loops during controller connection.
 
 ## Builings
