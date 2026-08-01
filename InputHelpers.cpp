@@ -583,6 +583,7 @@ bool handle_input(JoyShock *jc, uint8_t *packet, int len, bool &hasIMU) {
 			float sub_dt = jc->delta_time / 3.0f;
 			float avgAccelX = 0.f, avgAccelY = 0.f, avgAccelZ = 0.f;
 			float avgGyroX = 0.f, avgGyroY = 0.f, avgGyroZ = 0.f;
+			int zeroSampleCount = 0;
 
 			jc->modifying_lock.lock();
 
@@ -598,7 +599,8 @@ bool handle_input(JoyShock *jc, uint8_t *packet, int len, bool &hasIMU) {
 				int16_t rawGyroZ = uint16_to_int16(packet[idx + 10] | (packet[idx + 11] << 8));
 
 				if ((rawAccelX | rawAccelY | rawAccelZ | rawGyroX | rawGyroY | rawGyroZ) == 0) {
-					hasIMU = false;
+				//	hasIMU = false;
+					zeroSampleCount++;
 				}
 
 				//Part of 'Precise Factory SPI Sensor Calibration & Scaling'
@@ -650,6 +652,10 @@ bool handle_input(JoyShock *jc, uint8_t *packet, int len, bool &hasIMU) {
 				avgGyroX += cal_gX;
 				avgGyroY += cal_gY;
 				avgGyroZ += cal_gZ;
+			}
+
+			if (zeroSampleCount == 3) {
+				hasIMU = false;
 			}
 
 			imu_state.accelX = avgAccelX / 3.0f;
