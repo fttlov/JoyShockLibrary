@@ -886,17 +886,32 @@ namespace GamepadMotionHelpers
 			MinMaxWindow.Reset(0.f);
 		}
 		else
-		{
+		/*{
 			RecalibrateThreshold = std::min(RecalibrateThreshold + stillnessErrorClimbRate * deltaTime, maxStillnessError);
 
 			//@402 Adaptive Noise Threshold (Time-Corrected Hybrid Fix). Порог 0.5 град/сек универсален: это физический предел дрожи рук.
 			if (gyroDelta.x < 0.5f && gyroDelta.y < 0.5f && gyroDelta.z < 0.5f) {
 				// Используем реальное время накопления окна, а не deltaTime одного кадра!
-				// Работает через MinStillnessCollectionTime, то есть применяется за 0,5 сек.
+				// Работает через MinStillnessCollectionTime, то есть применяется за 1 сек.
 				const float relaxRate = std::min(MinMaxWindow.TimeSampled, 1.0f);
 				if (stillnessGyroDelta < 0.f) MinDeltaGyro = MinDeltaGyro.Lerp(gyroDelta, relaxRate);
 				if (stillnessAccelDelta < 0.f) MinDeltaAccel = MinDeltaAccel.Lerp(accelDelta, relaxRate);
 			}
+			MinMaxWindow.Reset(0.f);
+		}*/
+		{
+			RecalibrateThreshold = std::min(RecalibrateThreshold + stillnessErrorClimbRate * deltaTime, maxStillnessError);
+
+			//@402 Strict Table-Detect & Fast Noise Floor Decay
+			// Порог 0.01G жестко отсекает руки (даже самые неподвижные). Срабатывает только на столе.
+			if (accelDelta.x < 0.01f && accelDelta.y < 0.01f && accelDelta.z < 0.01f) {
+				// Быстрая адаптация: смешиваем старый эталон с новым шумом (тепловым/200Hz) 
+				// пропорционально времени прошедшего окна. Адаптация занимает ~1 секунду на столе.
+				const float relaxRate = std::min(MinMaxWindow.TimeSampled, 1.0f);
+				if (stillnessGyroDelta < 0.f) MinDeltaGyro = MinDeltaGyro.Lerp(gyroDelta, relaxRate);
+				if (stillnessAccelDelta < 0.f) MinDeltaAccel = MinDeltaAccel.Lerp(accelDelta, relaxRate);
+			}
+
 			MinMaxWindow.Reset(0.f);
 		}
 
@@ -1202,7 +1217,7 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 	const float worldYaw = -gravX * gyroX - gravY * gyroY - gravZ * gyroZ;
 	//const float worldYaw = -gravX * gyroX - gravY * gyroY - 0.0f;
 	// project local pitch axis (X) onto gravity plane
-	const float gravDotPitchAxis = gravX;
+	/*const float gravDotPitchAxis = gravX;
 	GamepadMotionHelpers::Vec pitchAxis(1.f - gravX * gravDotPitchAxis,
 		-gravY * gravDotPitchAxis,
 		-gravZ * gravDotPitchAxis);
@@ -1223,7 +1238,23 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 	else
 	{
 		x = 0.f;
-	}
+	}*/
+
+	//Updated World Space. No freezing when roll=90 and vertical move & no axis Inversion when roll >90
+	float effectiveGravY = (gravY > 0.0f && std::abs(gravZ) > std::abs(gravX)) ? -std::abs(gravY) : gravY;
+	float grav2D_len = std::max(sqrtf(gravX * gravX + effectiveGravY * effectiveGravY), 0.001f);
+	float unrolledGyroX = gyroX * (-effectiveGravY / grav2D_len) + gyroY * (gravX / grav2D_len);
+
+	// Бесшовный переход теперь реагирует исключительно на близость к зениту (ось Z)
+	float zenithBlend = std::clamp((1.0f - std::abs(gravZ)) / 0.1f, 0.0f, 1.0f);
+	float finalGyroX = unrolledGyroX * zenithBlend + gyroX * (1.0f - zenithBlend);
+
+	const float flatness = std::abs(gravY);
+	const float upness = std::abs(gravZ);
+	const float sideness = std::abs(gravX);
+	const float sideReduction = sideReductionThreshold <= 0.f ? 1.f : std::clamp((std::max({ flatness, upness, sideness }) - sideReductionThreshold) / sideReductionThreshold, 0.f, 1.f);
+
+	x = sideReduction * finalGyroX;
 
 	y = worldYaw; //original
 
@@ -1249,7 +1280,7 @@ inline void GamepadMotion::GetPlanarSpaceGyro(float& x, float& y, const float si
 inline void GamepadMotion::CalculatePlanarSpaceGyro(float& x, float& y, const float gyroX, const float gyroY, const float gyroZ, const float gravX, const float gravY, const float gravZ, const float sideReductionThreshold)
 {
 	// Calculate the 2D gravity magnitude, completely ignoring the Z-axis
-	float grav2D_len = sqrtf(gravX * gravX + gravY * gravY);
+	/*float grav2D_len = sqrtf(gravX * gravX + gravY * gravY);
 
 	// Ensure the controller hasn't crossed the 90-degree vertical threshold (zenith) gravY < 0.0f acts as a hard stop to prevent Gimbal Lock flip and polarity inversion grav2D_len > 0.01f prevents division by zero
 	if (gravY < 0.0f && grav2D_len > 0.01f)
@@ -1270,10 +1301,40 @@ inline void GamepadMotion::CalculatePlanarSpaceGyro(float& x, float& y, const fl
 		//We cap the minimum divisor at 0.15f (~81 degrees) to prevent extreme sensitivity spikes near the zenith.
 		float scaleY = grav2D_len / std::max(grav2D_len, 0.15f);
 		y = (gyroY * cosRoll - gyroX * sinRoll) * scaleY;
+	}*/
+
+	//Updated Planar Space. The limits on wrist rotation (screwdriver-roll) angles greater than -90 90 degrees have been relaxed
+	float absGravY = std::abs(gravY);
+	float effectiveGravY = gravY;
+	bool isPitchOverZenith = (gravY > 0.0f && std::abs(gravZ) >= std::abs(gravX));
+
+	if (isPitchOverZenith)
+	{
+		effectiveGravY = -absGravY;
+	}
+
+	float grav2D_sq = gravX * gravX + effectiveGravY * effectiveGravY;
+	float grav2D_len = sqrtf(grav2D_sq);
+
+	if (grav2D_len > 0.01f)
+	{
+		float cosRoll = -effectiveGravY / grav2D_len;
+		float sinRoll = gravX / grav2D_len;
+
+		x = gyroX * cosRoll + gyroY * sinRoll;
+
+		float scaleY = grav2D_len / std::max(grav2D_len, 0.15f);
+		y = (gyroY * cosRoll - gyroX * sinRoll) * scaleY;
+
+		if (isPitchOverZenith)
+		{
+			float fadeAll = std::clamp(1.0f - (gravY * 10.0f), 0.0f, 1.0f);
+			x *= fadeAll;
+			y *= fadeAll;
+		}
 	}
 	else
 	{
-		// Halt all cursor movement if the controller is pointed straight at the ceiling  or tilted backward, forcing the user to return to a valid aiming posture.
 		x = 0.0f;
 		y = 0.0f;
 	}

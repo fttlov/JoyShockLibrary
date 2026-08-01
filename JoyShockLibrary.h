@@ -136,7 +136,8 @@ typedef struct JSL_SETTINGS {
 	int colour = 0;
 	int playerNumber = 0;
 	int controllerType = 0;
-	std::string controllerPath;
+	//std::string controllerPath;
+	char controllerPath[256];		//@209
 	int splitType = 0;
 	bool isCalibrating = false;
 	bool autoCalibrationEnabled = false;
