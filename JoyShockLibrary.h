@@ -235,6 +235,7 @@ extern "C" JOY_SHOCK_API void JslGetCalibrationOffset(int deviceId, float& xOffs
 extern "C" JOY_SHOCK_API void JslSetCalibrationOffset(int deviceId, float xOffset, float yOffset, float zOffset);
 extern "C" JOY_SHOCK_API JSL_AUTO_CALIBRATION JslGetAutoCalibrationStatus(int deviceId);
 extern "C" JOY_SHOCK_API void JslGetAccelerometerTelemetry(int deviceId, float& shakiness, float& minDeltaAccel);	//@503
+extern "C" JOY_SHOCK_API float JslGetAngularVelocity(int deviceId);	//@www
 
 // this function will get called for each input event from each controller
 extern "C" JOY_SHOCK_API void JslSetCallback(void(*callback)(int, JOY_SHOCK_STATE, JOY_SHOCK_STATE, IMU_STATE, IMU_STATE, float));
