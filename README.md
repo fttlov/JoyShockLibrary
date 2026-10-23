@@ -89,10 +89,40 @@ Because of this, hardware-calibrated controllers still suffered from severe cros
   - **Zenith Polarity Guard (`effectiveGravY`)**: Preserves natural pitch direction when crossing the zenith over the shoulder (`gravY > 0`). <br>
   - **3D Side Reduction (`sideness`)**: Added `sideness = std::abs(gravX)` to `sideReduction`, preventing artificial input muting when holding the controller on its side.
 
-### Connection Handshake & IMU Initialization Loop Fix
+### 15 Connection Handshake & IMU Initialization Loop Fix
 Code: @604 <br>
 **Files modified:** `InputHelpers.cpp`  <br>
 **Description:** Adding zeroSampleCount++ to @604. Resolved a race condition during Bluetooth controller startup where temporary zero-payloads in early sub-packets prematurely flagged `hasIMU = false`. The IMU presence check now evaluates all 3 sub-samples per report, requiring a full zero-payload across the entire packet before declaring the sensor inactive. This completely eliminates infinite `enable_IMU` command spam and reconnection loops during controller connection.
+
+16. #### Angular Velocity Telemetry for OSD <br>
+**Code:** //@210, //@504 <br>
+**Files modified:** `JoyShockLibrary.cpp`, `JoyShockLibrary.h` <br>
+**Functions added:** `JslGetAngularVelocity()` <br>
+**Description:** Added an exported API function to retrieve the absolute angular velocity vector length in degrees per second ($\sqrt{\omega_x^2 + \omega_y^2 + \omega_z^2}$) from calibrated gyro data. Designed for real-time motion telemetry in AHK and RTSS OSD overlays without modifying internal accumulator registers.
+
+17. #### DualSense Extended Mode & High Polling Rate Fix (500Hz+) <br>
+**Code:** //@211, //@307 <br>
+**Files modified:** `JoyShockLibrary.cpp`, `JoyShock.cpp` <br>
+**Functions modified/added:** `init_ds5_bt()`, `JslConnectDevices()` <br>
+**Description:** Fixed a legacy JSL limitation where DualSense controllers connected over Bluetooth defaulted to simple HID mode (Report `0x01`), hard-capping polling rates to 62.5Hz with disabled motion sensors. Implemented an active initialization handshake via Output Report `0x31` protected by a 32-bit CRC with the required `0xA2` seed. This unlocks native Bluetooth Extended Mode, restoring full 6-axis gyro/accelerometer data and enabling high polling rates (500–650Hz+ depending on the host BT adapter).
+
+18. #### Fast Connection Optimization & Redundant USB Check Removal <br>
+**Code:** @212, //@308 <br>
+**Files modified:** `JoyShockLibrary.cpp`, `JoyShock.cpp` <br>
+**Function modified:** `init_bt()` <br>
+**Description:** Restricted the aggressive wired USB handshake (`0x80 0x01`) exclusively to Switch Pro Controllers (`left_right == 3`). Joy-Cons operating over Bluetooth no longer receive unhandled USB handshake packets, eliminating five-second timeout delays, false console error warnings, and connection race conditions on startup.
+
+19. #### Joy-Con Bluetooth Connection & Subcommand Handshake Order <br>
+**Code:** //@309 <br>
+**Files modified:** `JoyShock.cpp` <br>
+**Function modified:** `init_bt()` <br>
+**Description:** Resolved an issue where Joy-Con clones (e.g., Mobapad) intermittently booted in a "zombie" state with non-functional motion sensors. Aligned the initialization sequence with the upstream Linux kernel standard (`hid-nintendo.c`): SPI flash calibrations are read first, followed by switching to standard report mode `0x30`, enabling the 6-axis IMU (`subcmd 0x40`), and enabling vibration (`subcmd 0x48`). Added safe 20ms spacing intervals to prevent MCU command buffer saturation and ensure reliable IMU activation on every connection.
+
+20. #### Unified Real-Time Battery Reporting (All Controllers) <br>
+**Code:** //@213, //@605 <br>
+**Files modified:** `JoyShockLibrary.cpp`, `InputHelpers.cpp` <br>
+**Functions modified:** `handle_input()`, `JslGetBattery()` <br>
+**Description:** Overhauled battery level reporting across all supported controllers. Added real-time extraction of the native battery byte directly from incoming streaming packets: DualShock 4 (bytes 30/32 for USB/BT) and DualSense (bytes 53/54 for USB/BT). Extended `JslGetBattery()` to return scaled 0–100% capacity for Sony hardware alongside Nintendo devices, eliminating the legacy `-1.0` fallback and providing zero-latency battery telemetry without sending redundant feature report requests.
 
 ## Builings
 How to see in building section: https://github.com/fttlov/JCAdvance
