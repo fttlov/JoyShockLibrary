@@ -394,7 +394,7 @@ int JslConnectDevices()
 	hid_free_enumeration(devs);
 
 	// init joyshocks:
-	for (std::pair<int, JoyShock*> pair : _joyshocks)
+	/*for (std::pair<int, JoyShock*> pair : _joyshocks)
 	{
 		JoyShock* jc = pair.second;
 		
@@ -428,6 +428,86 @@ int JslConnectDevices()
 		jc->delta_time = 0.0;
 
 		jc->deviceNumber = 0; // left
+	}*/
+
+	//@211
+	/*for (std::pair<int, JoyShock*> pair : _joyshocks)
+	{
+		JoyShock* jc = pair.second;
+
+		if (jc->initialised)
+		{
+			continue;
+		}
+
+		if (jc->controller_type == ControllerType::s_ds4) {
+			if (!jc->is_usb) {
+				jc->init_ds4_bt();
+			}
+			else {
+				jc->init_ds4_usb();
+			}
+		} // dualsense
+		else if (jc->controller_type == ControllerType::s_ds) {
+			if (!jc->is_usb) {
+				jc->init_ds5_bt(); // Включает 250+ Hz по Bluetooth
+			}
+			else {
+				jc->init_ds_usb(); // Стандартная инициализация USB
+			}
+		} // charging grip
+		else if (jc->is_usb) {
+			//printf("USB\n");
+			jc->init_usb();
+		}
+		else {
+			//printf("BT\n");
+			jc->init_bt();
+		}
+		// all get time now for polling
+		jc->last_polled = std::chrono::steady_clock::now();
+		jc->delta_time = 0.0;
+
+		jc->deviceNumber = 0; // left
+	}*/
+
+	//@211 + @212 init joyshocks (parallel): xxx - это часть фикса 62hz Dualsense, а zzz (весь новый блок) это попытка ускорить коннект 2x Joyc-on (parallel)
+	std::vector<std::thread> initThreads;
+	for (std::pair<int, JoyShock*> pair : _joyshocks)
+	{
+		JoyShock* jc = pair.second;
+		if (jc->initialised)
+		{
+			continue;
+		}
+
+		initThreads.emplace_back([jc]() {
+			if (jc->controller_type == ControllerType::s_ds4) {
+				if (!jc->is_usb) jc->init_ds4_bt();
+				else jc->init_ds4_usb();
+			}
+			else if (jc->controller_type == ControllerType::s_ds) {
+				if (!jc->is_usb) jc->init_ds5_bt();
+				else jc->init_ds_usb();
+			}
+			else if (jc->is_usb) {
+				jc->init_usb();
+			}
+			else {
+				jc->init_bt();
+			}
+			jc->last_polled = std::chrono::steady_clock::now();
+			jc->delta_time = 0.0;
+			jc->deviceNumber = 0;
+		});
+	}
+
+	for (std::thread& t : initThreads)
+	{
+		if (t.joinable())
+		{
+			t.join();
+		}
 	}
 
 	unsigned char buf[64];
@@ -898,13 +978,33 @@ float JslGetPollRate(int deviceId)
 }
 
 //@205 Добавляем функцию для извлечения батареи напрямую из Bluetooth-пакетов
-float JslGetBattery(int deviceId)
+/*float JslGetBattery(int deviceId)
 {
 	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
 	JoyShock* jc = GetJoyShockFromHandle(deviceId);
 	if (jc != nullptr && jc->controller_type == ControllerType::n_switch) {
 		float bat = (float)jc->battery * 12.5f;
 		return bat > 100.0f ? 100.0f : bat; // Отсекаем аномальные значения клонов (Mobapad) на 100%
+	}
+	return -1.0f;
+}*/
+
+//@213 Улучшенный @205, считывание байтов батареи для всех геймпадов
+float JslGetBattery(int deviceId)
+{
+	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
+	JoyShock* jc = GetJoyShockFromHandle(deviceId);
+	if (jc != nullptr) {
+		// Nintendo (Joy-Con, Pro Controller): шкала 0..8 (шаг 12.5%)
+		if (jc->controller_type == ControllerType::n_switch) {
+			float bat = (float)jc->battery * 12.5f;
+			return bat > 100.0f ? 100.0f : bat;
+		}
+		// Sony (DualShock 4, DualSense): шкала 0..10 (шаг 10%)
+		else if (jc->controller_type == ControllerType::s_ds4 || jc->controller_type == ControllerType::s_ds) {
+			float bat = (float)jc->battery * 10.0f;
+			return bat > 100.0f ? 100.0f : bat;
+		}
 	}
 	return -1.0f;
 }
@@ -1061,6 +1161,18 @@ void JslGetAccelerometerTelemetry(int deviceId, float& shakiness, float& minDelt
 	shakiness = 0.0f;
 	minDeltaAccel = 0.0f;
 }
+
+float JslGetAngularVelocity(int deviceId) {	//@210
+	std::shared_lock<std::shared_timed_mutex> lock(_connectedLock);
+	JoyShock* jc = GetJoyShockFromHandle(deviceId);
+	if (jc != nullptr) {
+		float gx, gy, gz;
+		jc->get_calibrated_gyro(gx, gy, gz);
+		return sqrtf(gx * gx + gy * gy + gz * gz);
+	}
+	return 0.0f;
+}
+
 // this function will get called for each input event from each controller
 void JslSetCallback(void(*callback)(int, JOY_SHOCK_STATE, JOY_SHOCK_STATE, IMU_STATE, IMU_STATE, float)) {
 	// exclusive lock

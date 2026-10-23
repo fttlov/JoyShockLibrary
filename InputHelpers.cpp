@@ -40,6 +40,7 @@ bool handle_input(JoyShock *jc, uint8_t *packet, int len, bool &hasIMU) {
 
 	// ds4
 	if (jc->controller_type == ControllerType::s_ds4) {
+		jc->battery = jc->is_usb ? (packet[30] & 0x0F) : (packet[32] & 0x0F); //@605 OSD battery fix. —читывание уровн€ зар€да DS4 (байт 30 по USB, байт 32 по BT)
 		int indexOffset = 0;
 		bool isValid = true;
 		if (!jc->is_usb) {
@@ -148,6 +149,7 @@ bool handle_input(JoyShock *jc, uint8_t *packet, int len, bool &hasIMU) {
 
 	// DualSense
 	if (jc->controller_type == ControllerType::s_ds) {
+		jc->battery = jc->is_usb ? (packet[53] & 0x0F) : (packet[54] & 0x0F);	//@605
 		int indexOffset = 1;
 		if (!jc->is_usb) {
 			indexOffset = 2;

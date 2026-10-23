@@ -1240,7 +1240,7 @@ inline void GamepadMotion::CalculateWorldSpaceGyro(float& x, float& y, const flo
 		x = 0.f;
 	}*/
 
-	//Updated World Space. No freezing when roll=90 and vertical move & no axis Inversion when roll >90
+	//@404 Updated World Space. No freezing when roll=90 and vertical move & no axis Inversion when roll > 90
 	float effectiveGravY = (gravY > 0.0f && std::abs(gravZ) > std::abs(gravX)) ? -std::abs(gravY) : gravY;
 	float grav2D_len = std::max(sqrtf(gravX * gravX + effectiveGravY * effectiveGravY), 0.001f);
 	float unrolledGyroX = gyroX * (-effectiveGravY / grav2D_len) + gyroY * (gravX / grav2D_len);

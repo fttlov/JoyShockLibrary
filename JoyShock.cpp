@@ -325,7 +325,7 @@ public:
 				this->is_usb = false;
 			}
 		}
-		else if (this->controller_type == ControllerType::s_ds) {
+		/*else if (this->controller_type == ControllerType::s_ds) {
             unsigned char buf[64];
             memset(buf, 0, 64);
 
@@ -337,7 +337,13 @@ public:
             // The DS's protocol is literally so similar to the DS4 that we can reuse the same reports to get the same results.
             // Meet the new boss - the same as the old boss.
             if (buf[0] == 0x31) {
-                this->is_usb = false;
+                this->is_usb = false;*/
+		else if (this->controller_type == ControllerType::s_ds) {	//@307
+			// Пробуем разбудить DualSense по Bluetooth (переключить в Extended Mode 0x31)
+			if (init_ds5_bt()) {
+				// Если функция вернула true, значит геймпад ответил пакетом 0x31.
+				// Следовательно, это Bluetooth-подключение.
+				this->is_usb = false;
             }
 
         }
@@ -767,7 +773,7 @@ public:
 
 		// get stick calibration data:
 
-		// factory calibration:		//@xxx Analog Stick 12-bit Calibration Unpacking Fix. Fixed bitwise bit-bleed and byte-shift error during the unpacking of 12-bit factory 
+		// factory calibration:		//@306 Analog Stick 12-bit Calibration Unpacking Fix. Fixed bitwise bit-bleed and byte-shift error during the unpacking of 12-bit factory 
 		if (this->left_right == 1 || this->left_right == 3) {	//and user analog stick calibration data from SPI flash memory. Replaced ambiguous implicit bit-shifts with explicit, standard-compliant nibble masks  (`0x0F` / `0xF0`),
 			stick_cal_x_l[1] = factory_stick_cal[3] | ((factory_stick_cal[4] & 0x0F) << 8);		//resolving a legacy indexing bug on the Y-axis and guaranteeing accurate stick centers and deadzone boundaries across all C++ compilers		
 			stick_cal_y_l[1] = ((factory_stick_cal[4] & 0xF0) >> 4) | (factory_stick_cal[5] << 4);	// 
@@ -1051,7 +1057,7 @@ public:
 		hid_set_nonblocking(this->handle, 0);
 
 		// first, check if this is a USB connection
-		buf[0] = 0x80;
+		/*buf[0] = 0x80;
 		buf[1] = 0x01;
 		hid_write(this->handle, buf, 2);
 		// wait for up to 5 messages for a USB acknowledgement
@@ -1074,7 +1080,25 @@ public:
 			//printf("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
 			//	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10]);
 			printf("Not a USB response...\n");
+		}*/
+
+		//@308 убираем проверку USB для Joy-con. first, check if this is a USB connection (только для Pro Controller) 
+		if (this->left_right == 3)
+		{
+			buf[0] = 0x80;
+			buf[1] = 0x01;
+			hid_write(this->handle, buf, 2);
+			for (int idx = 0; idx < 5; idx++)
+			{
+				if (hid_read_timeout(this->handle, buf, 0x40, 200) && buf[0] == 0x81)
+				{
+					is_usb = true;
+					init_usb();
+					return 1;
+				}
+			}
 		}
+
 		memset(buf, 0, 0x40);
 		//if (hid_exchange(this->handle, buf, 2))
 		//{
@@ -1087,19 +1111,8 @@ public:
 		//	init_usb();
 		//	return 1;
 		//}
-		buf[1] = 0x00;
 
-		// Enable vibration
-		printf("Enabling vibration...\n");
-		buf[0] = 0x01; // Enabled
-		send_subcommand(0x1, 0x48, buf, 1);
-
-		//printf("Set vibration\n");
-
-		// Enable IMU data
-		enable_IMU(buf, 0x40);
-
-		// Set input report mode (to push at 60hz)
+		// Set input report mode (to push at 60hz)	
 		// x00	Active polling mode for IR camera data. Answers with more than 300 bytes ID 31 packet
 		// x01	Active polling mode
 		// x02	Active polling mode for IR camera data.Special IR mode or before configuring it ?
@@ -1107,15 +1120,31 @@ public:
 		// x23	MCU update input report ?
 		// 30	NPad standard mode. Pushes current state @60Hz. Default in SDK if arg is not in the list
 		// 31	NFC mode. Pushes large packets @60Hz
+		buf[1] = 0x00;
+
+		//@309 - поптыка решения проблемы с нерабочим IMU при запуске эмулятора. Типа правильный порядок и sleep навсякий
+		// 1. Вычитываем калибровки из SPI памяти (пока контроллер в исходном режиме)
+		printf("Getting calibration data...\n");
+		result = get_switch_controller_info();
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+		// 2. Переводим контроллер в полноразмерный режим 0x30
 		printf("Set input report mode to 0x30...\n");
 		buf[0] = 0x30;
 		send_subcommand(0x01, 0x03, buf, 1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(40));
 
-		// @CTCaer
+		// 3. Будим 6-осевой чип IMU (СТРОГО ПОСЛЕ перехода в 0x30!)
+		enable_IMU(buf, 0x40);
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-		// get calibration data:
-		printf("Getting calibration data...\n");
-		result = get_switch_controller_info();
+		// 4. Включаем вибромоторы
+		printf("Enabling vibration...\n");
+		buf[0] = 0x01; // Enabled
+		send_subcommand(0x1, 0x48, buf, 1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+		this->initialised = true;
 
 		return result;
 	}
@@ -1236,6 +1265,32 @@ public:
 		enable_gyro_ds4_bt(buf, 78);
 
 		initialised = true;
+	}
+
+	bool init_ds5_bt() {	//@307
+		unsigned char buf[79];
+		memset(buf, 0, 79);
+
+		buf[0] = 0xa2;
+		buf[1] = 0x31;
+		buf[2] = 0x02;
+		buf[3] = 0x03;
+		buf[4] = 0x54;
+		buf[46] = 1;   // Player 1 LED
+		buf[49] = 0xFF;// Blue LED
+
+		uint32_t crc = crc_32(buf, 75);
+		memcpy(&buf[75], &crc, 4);
+
+		if (hid_write(handle, &buf[1], 78) > 0) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			memset(buf, 0, 64);
+			if (hid_read_timeout(handle, buf, 64, 100) > 0 && buf[0] == 0x31) {
+				initialised = true;
+				return true; // Успешно проснулся по Bluetooth!
+			}
+		}
+		return false;
 	}
 
 	// placeholder to get things working quickly. overdue for a refactor
