@@ -3,19 +3,19 @@ Fork was created for JCADvance, but it may also work with DSadvance. Look for ch
 
 ### JoyShockLibrary Modification Summary (JCAdvance Fork)
 
-1. #### Gyro Axis Overwrite Bug Fix <br>
+1. ### Gyro Axis Overwrite Bug Fix <br>
 **Code:** //@301 <br>
 **Files modified:** JoyShock.cpp <br>
 **Function modified:** get_and_flush_cumulative_gyro() <br>
 **Description:** Resolved a critical typo where gyroY and gyroZ assignments were mistakenly written to gyroX when num_cumulative_gyro_samples == 0. This bug previously corrupted the X-axis and left the Y/Z axes unassigned, leading to severe camera stuttering and axis drift on frames where no new IMU samples arrived.
 
-2. #### Double-Transformation Gyro Space Bug Fix <br>
+2. ### Double-Transformation Gyro Space Bug Fix <br>
 **Code:** //@201 <br>
 **Files modified:** JoyShockLibrary.cpp <br>
 **Function modified:** pollIndividualLoop() <br>
 **Description:** Fixed a logical flaw where already-transformed spatial gyro values (World/Player Space) were pushed into the cumulative gyro buffer. This caused JSL to apply the spatial rotation projection matrix twice during the final accumulation flush, corrupting the coordinate system when gyroSpace = 1 or 2 was enabled [2]. Pushing raw, untransformed calibrated IMU data instead allows the spatial math to execute exactly once, enabling proper wrist-tilt compensation.
 
-3. #### Data Race & Input Flickering Prevention (Double-Buffering) <br>
+3. ### Data Race & Input Flickering Prevention (Double-Buffering) <br>
 **Code:** //@601 <br>
 **Files modified:** InputHelpers.cpp <br>
 **Function modified:** handle_input() <br>
@@ -27,7 +27,7 @@ Fork was created for JCADvance, but it may also work with DSadvance. Look for ch
 **Functions modified/added:** get_transformed_imu_state(), JslGetSimpleState(), JslGetIMUState(), JslGetGyro*(), JslGetAccel*() <br>
 **Description:** Overloaded the get_transformed_imu_state() method to support parameter-free invocation, allowing thread-safe, lock-guarded access to internal IMU structures. Protected main-thread reading in JslGetSimpleState() with modifying_lock and updated all single-axis gyro and accelerometer getters to retrieve state via the thread-safe copy generator. This eliminates any remaining data races between JSL's background polling loop and the host application's rendering frame rates.
 
-5. #### New case 3 (Planar Space) for Joy-cons  <br>
+5. ### New case 3 (Planar Space) for Joy-cons  <br>
 **Code:** //@203, //@303, //@401  <br>
 **Files modified:** JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp  <br>
 **Description:** Modified World Gyro Space: minimal interference with the control of the X-axis when rotating the hand clockwise and anti-clockwise during a vertical grip
@@ -42,7 +42,7 @@ Added "Planar Space" (Case 3) for gyro gaming. This mode completely filters out 
 **Files modified:** JoyShockLibrary.cpp, JoyShock.cpp, GamepadMotion.hpp, JoyShockLibrary.h, InputHelpers.cpp <br>
 **Description:** Modification and bugfixes (//@602) of the library to display information on the OSD
 
-8. #### Auto-calibration fix <br>
+8. ### Auto-calibration fix <br>
 **Code:** //@402 <br>
 **Files modified:** GamepadMotion.hpp  <br>
 Description: ~~The original algorithm permanently locked the noise threshold to the absolute historical minimum. As the controller heated up during play, its natural sensor noise slightly increased, making it physically impossible to meet the old, overly strict threshold again. <br>
@@ -67,17 +67,17 @@ Because of this, hardware-calibrated controllers still suffered from severe cros
 **Files modified:** `JoyShockLibrary.cpp` <br>
 **Description:** If you cannot perform a hardware calibration of the accelerometer, use software calibration (hotkey) for current session.
 
-12. #### Precise Factory SPI Sensor Calibration & Scaling <br>
+12. ### Precise Factory SPI Sensor Calibration & Scaling <br>
 **Code:** //@306, 604 <br>
 **Files modified:** `JoyShock.cpp`, `InputHelpers.cpp` <br>
 **Description:** Replaced legacy hardcoded IMU scaling constants (which blindly assumed `16384` for accelerometer ±4G range and `13371` for gyroscope sensitivity for all controllers) with unique, per-chip factory calibration multipliers read dynamically from the controller's SPI flash memory (`0x6020` factory / `0x8026` user blocks). Corrected the fundamental order of operations to `(Raw - Offset) * UniqueMultiplier` across proper physical axes (Y, X, Z), eliminating scale distortion, fixing skewed gravity vectors, and ensuring 100% physically accurate angular velocity calculations.
 
-13. #### True 200Hz IMU Unlocking & Sequential Sub-Packet Processing  <br>
+13. ### True 200Hz IMU Unlocking & Sequential Sub-Packet Processing  <br>
 **Code:** //@604 <br>
 **Files modified:** `InputHelpers.cpp` <br>
 **Description:** Nintendo Switch controllers sample their IMU at 200Hz (every 5ms) and pack 3 discrete readings into a single Bluetooth HID report sent every 15ms (~66.6Hz). Completely overhauled the input pipeline by removing the legacy code's 3-sample averaging filter, which previously acted as an unintended low-pass filter—blurring sharp flicks and adding artificial input lag. The new pipeline unrolls and processes all 3 micro-samples sequentially with a divided `deltaTime`, tripling motion tracking resolution, maximizing flick-shot responsiveness, and unlocking true 200Hz+ sensor fidelity without increasing Bluetooth bandwidth.
 
-### 14. Modified World Space (//@404) 
+#### 14. Modified World Space (//@404) 
 - **Description**: Standard JSL World Space pitch (vertical / X-axis) calculation suffers from critical mathematical flaws and cross-axis corruption:<br>
   1. **Pitch Cross-Talk & Arc Distortion**: Original JSL pitch includes a `-gravZ * gravX * gyroZ` term. At non-zero pitch angles, pure wrist rolls (screwdriver gesture) caused the cursor to sag in a curved downward arc, and diagonal swipes warped into unpredictable S-curves, leading to vertical height overshoot. <br>
   2. **Roll = 90° Freeze**: Holding the controller on its side causes the projected `pitchAxis` vector to collapse to `(0,0,0)`, completely freezing vertical cursor movement. Furthermore, original `sideReduction` ignores X-axis gravity (`gravX`), evaluating to `0.0` and creating a secondary input lock. <br>
@@ -89,7 +89,7 @@ Because of this, hardware-calibrated controllers still suffered from severe cros
   - **Zenith Polarity Guard (`effectiveGravY`)**: Preserves natural pitch direction when crossing the zenith over the shoulder (`gravY > 0`). <br>
   - **3D Side Reduction (`sideness`)**: Added `sideness = std::abs(gravX)` to `sideReduction`, preventing artificial input muting when holding the controller on its side.
 
-### 15 Connection Handshake & IMU Initialization Loop Fix
+#### 15 Connection Handshake & IMU Initialization Loop Fix
 Code: @604 <br>
 **Files modified:** `InputHelpers.cpp`  <br>
 **Description:** Adding zeroSampleCount++ to @604. Resolved a race condition during Bluetooth controller startup where temporary zero-payloads in early sub-packets prematurely flagged `hasIMU = false`. The IMU presence check now evaluates all 3 sub-samples per report, requiring a full zero-payload across the entire packet before declaring the sensor inactive. This completely eliminates infinite `enable_IMU` command spam and reconnection loops during controller connection.
@@ -100,7 +100,7 @@ Code: @604 <br>
 **Functions added:** `JslGetAngularVelocity()` <br>
 **Description:** Added an exported API function to retrieve the absolute angular velocity vector length in degrees per second ($\sqrt{\omega_x^2 + \omega_y^2 + \omega_z^2}$) from calibrated gyro data. Designed for real-time motion telemetry in AHK and RTSS OSD overlays without modifying internal accumulator registers.
 
-17. #### DualSense Extended Mode & High Polling Rate Fix (500Hz+) <br>
+17. ### DualSense Extended Mode & High Polling Rate Fix (500Hz+) <br>
 **Code:** //@211, //@307 <br>
 **Files modified:** `JoyShockLibrary.cpp`, `JoyShock.cpp` <br>
 **Functions modified/added:** `init_ds5_bt()`, `JslConnectDevices()` <br>
